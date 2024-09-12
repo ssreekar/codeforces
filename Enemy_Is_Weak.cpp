@@ -1,5 +1,7 @@
 #include <iostream>
+#include <algorithm>
 #include <vector>
+#include <unordered_map>
 #include <limits>
 
 using namespace std;
@@ -12,7 +14,7 @@ struct FenwickTree {
     static const int SUM = 2; 
 
     // CHANGE ACCORDING TO TYPE OF FENWICK TREE
-    const int TYPE = MAX; 
+    const int TYPE = SUM; 
 
     FenwickTree(std::vector<long long> &arr) {
         tree.resize(arr.size()+1, 0);
@@ -64,3 +66,35 @@ struct FenwickTree {
         return -1;
     }
 };
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    int N;
+    cin >> N;
+    vector<long long> arr (N);
+    vector<long long> sortedArr;
+    for (int i = 0; i < arr.size(); i++) {
+        cin >> arr[i];
+    }
+    sortedArr = arr;
+    sort(sortedArr.rbegin(), sortedArr.rend());
+    unordered_map<long long, long long> inverseMap;
+    for (int i = 0; i < N; i++) {
+        inverseMap[sortedArr[i]] = i;
+    }
+
+    FenwickTree tree (N);
+    FenwickTree tree2 (N);
+    long long total = 0;
+    for (int i = 0; i < N; i++) {
+        int index = inverseMap[arr[i]];
+        long long below = tree.getVal(index);  
+        long long seconds = tree2.getVal(index);
+        total += seconds;
+        tree2.insert(index, below);
+        tree.insert(index, 1);
+    }
+    cout << total << '\n';
+    return 0;
+}
