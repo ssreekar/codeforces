@@ -82,7 +82,7 @@ struct SegmentTree {
             int mid = (hi + lo) / 2;
             build(input, index*2, lo, mid);
             build(input, index*2+1, mid+1, hi);
-            arr[index] = arr[index*2] + arr[index*2+1];
+            arr[index] = merge(arr[index*2], arr[index*2+1]);
         }
     }
 

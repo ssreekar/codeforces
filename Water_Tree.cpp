@@ -5,66 +5,87 @@
 
 using namespace std;
 
-struct FenwickTree {
-    std::vector<long long> tree;
+struct SegmentTree {
+    vector<long long> segTree;
+    long long N = 0;
 
-    static const int MIN = 0;
-    static const int MAX = 1;
-    static const int SUM = 2; 
+    SegmentTree(int size) {
+        segTree.resize(4 * size, 0);
+        N = size;
+    }
 
-    // CHANGE ACCORDING TO TYPE OF FENWICK TREE
-    const int TYPE = SUM; 
+    void color(int left, int right) {
+        colorRecurse(1, 0, N-1, left, right);
+    }
 
-    FenwickTree(std::vector<long long> &arr) {
-        tree.resize(arr.size()+1, 0);
-        if (TYPE != SUM) {
-            for (int i = 0; i < arr.size(); i++) {
-                FenwickTree::insert(i, arr[i]);
+    void uncolor (int index) {
+        uncolorRecurse(1, 0, N-1, index);
+    }
+
+    int getColor(int left, int right) {
+        return getColorRecurse(1, 0, N-1, left, right);
+    }
+
+    void push(int index, int segLeft, int segRight) {
+        if (segTree[index] == 1) {
+            if (segLeft != segRight) {
+                segTree[index*2] = 1;
+                segTree[index*2+1] = 1;
             }
-        } else {
-            // TODO Change faster insertion
-            for (int i = 0; i < arr.size(); i++) {
-                FenwickTree::insert(i, arr[i]);
-            }
         }
     }
 
-    FenwickTree(long long size) {
-        tree.resize(size+1, 0);
+    int getColorRecurse(int index, int segLeft, int segRight, int arrLeft, int arrRight) {
+        push(index, segLeft, segRight);
+        if (segLeft > arrRight || segRight < arrLeft) {
+            return 1;
+        }
+        if (segLeft >= arrLeft && segRight <= arrRight) {
+            return segTree[index];
+        }
+        int mid = (segLeft + segRight) / 2;
+        int left = getColorRecurse(index*2, segLeft, mid, arrLeft, arrRight);
+        int right = getColorRecurse(index*2+1, mid+1, segRight, arrLeft, arrRight);
+        return min(left, right);
     }
 
-    void insert(int index, long long value) {
-        index++;
-        while(index < tree.size()) {
-            tree[index] = operate(tree[index], value);
-            index += index & (-index);
+    int uncolorRecurse(int index, int segLeft, int segRight, int arrIndex) {
+        //cout << index << " " << segLeft << " " << segRight << " " << arrIndex << endl;
+        push(index, segLeft, segRight);
+        if (segLeft > arrIndex || segRight < arrIndex) {
+            return segTree[index];
         }
+        segTree[index] = 0;
+        if (segLeft == segRight && segLeft == arrIndex) {
+            return segTree[index];
+        }
+        int mid = (segLeft + segRight) / 2;
+        int left = uncolorRecurse(index*2, segLeft, mid, arrIndex);
+        int right = uncolorRecurse(index*2+1, mid+1, segRight, arrIndex);
+        segTree[index] = min(left, right);
+        return segTree[index];
     }
+    
 
-    long long getVal(int index) {
-        index++;
-        long long total = MIN ? numeric_limits<long long int>::max() : 0;
-        while(index > 0) {
-            total = operate(tree[index], total);
-            index -= index & (-index);
+    int colorRecurse(int index, int segLeft, int segRight, int arrLeft, int arrRight) {
+        //cout << index << " " << segLeft << " " << segRight << " " << arrLeft << " " << arrRight << endl;
+        push(index, segLeft, segRight);
+        if (segRight < arrLeft || segLeft > arrRight) {
+            return segTree[index];
         }
-        return total;
-    }
-
-    long long operate(long long a, long long b) {
-        switch (TYPE)
-        {
-        case SUM:
-            return a + b;
-        case MIN: 
-            return min(a, b);
-        case MAX:
-            return max(a, b);
+        if (segLeft >= arrLeft && segRight <= arrRight) {
+            segTree[index] = 1;
+            return segTree[index];
         }
-        cerr << "Invalid Fenwick Tree Type" << endl;
-        return -1;
+        int mid = (segLeft + segRight) / 2;
+        int left = colorRecurse(index*2, segLeft, mid, arrLeft, arrRight);
+        int right = colorRecurse(index*2+1, mid+1, segRight, arrLeft, arrRight);
+        segTree[index] = min(left, right);
+        return segTree[index];
     }
 };
+
+
 
 int main() {
     ios_base::sync_with_stdio(false);
@@ -82,6 +103,7 @@ int main() {
     dfs.push(1);
     vector<int> arrivalTime (N+1, -1);
     vector<int> returnTime (N+1, -1);
+    vector<int> parentNode (N+1, -1);
     int curTime = 0;
     while(!dfs.empty()) {
         int top = dfs.top();
@@ -96,31 +118,36 @@ int main() {
         for (int i = 0; i < adjList[top].size(); i++) {
             int newNode = adjList[top][i];
             if (arrivalTime[newNode] == -1){
+                parentNode[newNode] = top;
                 dfs.push(newNode);
             }
         }
     }
-    for (int i = 1; i <= N; i++) {
-        cout << i << " " << arrivalTime[i] << " " << returnTime[i] << endl;
-    }
 
-    FenwickTree parents (N+1);
-    FenwickTree childrens (N+1);
+
+    // arrival Time is at node // Return Time is 1 plus last child
+
+    SegmentTree segTree (N+1);
     int Q;
     cin >> Q;
     for (int i = 0; i < Q; i++) {
         int c, v;
         cin >> c >> v;
-        if (c == 1) {
-            parents.insert(arrivalTime[v], 1);
-            parents.insert(returnTime[v], -1);
+        if (c == 1) { 
+            //cout << arrivalTime[v] << " " <<returnTime[v]-1 << endl;
+            int isColoured = segTree.getColor(arrivalTime[v], returnTime[v]-1);
+            if (!isColoured && parentNode[v] != -1 ) {
+                segTree.uncolor(arrivalTime[parentNode[v]]);
+            }
+            segTree.color(arrivalTime[v], returnTime[v]-1);
+            
         } else if (c == 2) {
-            childrens.insert(arrivalTime[v], 1);
+            //cout << arrivalTime[v] << endl;
+            segTree.uncolor(arrivalTime[v]);
         } else {
-            int parentVal = parents.getVal(arrivalTime[v]);
-            int childrenVal = childrens.getVal(returnTime[v]-1);
-            int other = arrivalTime[v] == 0 ? 0 : childrens.getVal(arrivalTime[v]-1);
-            //cout <<  << endl;
+            //cout << arrivalTime[v] << " " <<returnTime[v]-1 << endl;
+            int value = segTree.getColor(arrivalTime[v], returnTime[v]-1);
+            cout << value << '\n';
         }
     }
 
