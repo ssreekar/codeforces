@@ -46,15 +46,16 @@ int main() {
     ll hi = 1e14;
     ll bestValid = 0;
     while (lo <= hi) {
-        ll mid = lo + (high - low) / 2;
+        ll mid = lo + (hi - lo) / 2;
+        //cout << mid << endl;
         ll currRubles = rubles;
-        ll diffB = (mid * totalB) - currB;
-        ll diffS = (mid * totalS) - currS;
-        ll diffC = (mid * totalC) - currC;
-        rubles -= priceB * diffB;
-        rubles -= priceS * diffS;
-        rubles -= prices * diffC;
-        if (rubles < 0) {
+        ll diffB = max(ll(0), (mid * totalB) - currB);
+        ll diffS = max(ll(0), (mid * totalS) - currS);
+        ll diffC = max(ll(0), (mid * totalC) - currC);
+        currRubles -= priceB * diffB;
+        currRubles -= priceS * diffS;
+        currRubles -= priceC * diffC;
+        if (currRubles < 0) {
             hi = mid-1;
         } else {
             bestValid = mid;
