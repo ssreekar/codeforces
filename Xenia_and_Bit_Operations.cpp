@@ -23,7 +23,6 @@ long long fastPow2(long long N) {
         }
         pow2 *= pow2;
         N = N >> 1;
-        //cout << curr << " " << pow2 << " " << N << endl;
     }
     return curr;
 }
